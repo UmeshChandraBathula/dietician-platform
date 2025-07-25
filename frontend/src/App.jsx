@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
+import { ForgotPasswordForm } from './components/auth/ForgotPasswordForm';
+import { ResetPasswordForm } from './components/auth/ResetPasswordForm';
 import { Dashboard } from './pages/Dashboard';
 
 const ProtectedRoute = ({ children }) => {
@@ -58,6 +60,22 @@ function App() {
               element={
                 <PublicRoute>
                   <RegisterForm />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPasswordForm />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicRoute>
+                  <ResetPasswordForm />
                 </PublicRoute>
               }
             />

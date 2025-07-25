@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { AppLogo, APP_CONFIG } from '../../utils/constants.jsx';
+import { PasswordInput } from '../ui/PasswordInput';
 
 export const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -19,8 +20,7 @@ export const RegisterForm = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setLoading(true);
     setError('');
 
@@ -48,6 +48,12 @@ export const RegisterForm = () => {
     });
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSubmit();
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 via-emerald-50 to-teal-50 py-12 px-4">
       <div className="max-w-md w-full space-y-8 p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
@@ -68,7 +74,7 @@ export const RegisterForm = () => {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="mt-8 space-y-6">
           <div className="space-y-4">
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
@@ -99,6 +105,7 @@ export const RegisterForm = () => {
                 placeholder="Enter your full name"
                 value={formData.name}
                 onChange={handleChange}
+                onKeyPress={handleKeyPress}
               />
             </div>
 
@@ -115,6 +122,7 @@ export const RegisterForm = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
+                onKeyPress={handleKeyPress}
               />
             </div>
 
@@ -130,6 +138,7 @@ export const RegisterForm = () => {
                 placeholder="Enter your phone number"
                 value={formData.phone}
                 onChange={handleChange}
+                onKeyPress={handleKeyPress}
               />
             </div>
 
@@ -146,49 +155,38 @@ export const RegisterForm = () => {
                   placeholder="e.g., Sports Nutrition, Clinical Nutrition, Weight Management"
                   value={formData.specialization}
                   onChange={handleChange}
+                  onKeyPress={handleKeyPress}
                 />
               </div>
             )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50"
-                placeholder="Create a secure password"
-                value={formData.password}
-                onChange={handleChange}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Must include uppercase, lowercase, number, and special character
-              </p>
-            </div>
+            <PasswordInput
+              id="password"
+              name="password"
+              label="Password"
+              placeholder="Create a secure password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+              helperText="Must include uppercase, lowercase, number, and special character"
+            />
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50"
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
-            </div>
+            <PasswordInput
+              id="confirmPassword"
+              name="confirmPassword"
+              label="Confirm Password"
+              placeholder="Confirm your password"
+              required
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+            />
           </div>
 
           <div>
             <button
-              type="submit"
+              onClick={handleSubmit}
               disabled={loading}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 transform hover:scale-[1.02]"
             >
@@ -211,7 +209,7 @@ export const RegisterForm = () => {
               </Link>
             </p>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

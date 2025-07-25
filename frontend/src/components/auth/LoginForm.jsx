@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { AppLogo, APP_CONFIG } from '../../utils/constants.jsx';
+import { PasswordInput } from '../ui/PasswordInput';
 
 export const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -14,8 +15,7 @@ export const LoginForm = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setLoading(true);
     setError('');
 
@@ -34,6 +34,12 @@ export const LoginForm = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSubmit();
+    }
   };
 
   return (
@@ -56,7 +62,7 @@ export const LoginForm = () => {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="mt-8 space-y-6">
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -71,29 +77,34 @@ export const LoginForm = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
+                onKeyPress={handleKeyPress}
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
+            <PasswordInput
+              id="password"
+              name="password"
+              label="Password"
+              placeholder="Enter your password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+            />
+          </div>
+
+          <div className="text-right">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-emerald-600 hover:text-emerald-500 font-medium"
+            >
+              Forgot your password?
+            </Link>
           </div>
 
           <div>
             <button
-              type="submit"
+              onClick={handleSubmit}
               disabled={loading}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 transform hover:scale-[1.02]"
             >
@@ -116,7 +127,7 @@ export const LoginForm = () => {
               </Link>
             </p>
           </div>
-        </form>
+        </div>
 
         {/* Footer */}
         <div className="text-center text-xs text-gray-500">

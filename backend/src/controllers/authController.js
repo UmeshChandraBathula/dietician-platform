@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { pool } = require('../utils/database');
 const { generateToken, generateResetToken } = require('../utils/jwt');
-const { sendPasswordResetEmail, sendWelcomeEmail } = require('../utils/email');
+const { sendPasswordResetEmail, sendWelcomeEmail, sendPasswordChangeConfirmationEmail } = require('../utils/email');
 
 const register = async (req, res) => {
   const { name, email, password, role, phone, specialization } = req.body;
@@ -108,7 +108,7 @@ const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    const userQuery = 'SELECT id, name FROM users WHERE email = $1 AND is_active = true';
+    const userQuery = 'SELECT id, name, email FROM users WHERE email = $1 AND is_active = true';
     const userResult = await pool.query(userQuery, [email]);
 
     if (userResult.rows.length === 0) {
@@ -123,12 +123,12 @@ const forgotPassword = async (req, res) => {
 
     const updateQuery = `
       UPDATE users 
-      SET reset_password_token = $1, reset_password_expire = $2 
+      SET reset_password_token = $1, reset_password_expire = $2, updated_at = NOW()
       WHERE id = $3
     `;
     await pool.query(updateQuery, [hashedToken, expireTime, user.id]);
 
-    const emailSent = await sendPasswordResetEmail(email, resetToken);
+    const emailSent = await sendPasswordResetEmail(user.email, resetToken, user.name);
 
     if (!emailSent) {
       return res.status(500).json({
@@ -158,7 +158,7 @@ const resetPassword = async (req, res) => {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     const userQuery = `
-      SELECT id FROM users 
+      SELECT id, name, email FROM users 
       WHERE reset_password_token = $1 
       AND reset_password_expire > NOW() 
       AND is_active = true
@@ -173,15 +173,18 @@ const resetPassword = async (req, res) => {
     }
 
     const user = userResult.rows[0];
+
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const updateQuery = `
       UPDATE users 
-      SET password = $1, reset_password_token = NULL, reset_password_expire = NULL 
+      SET password = $1, reset_password_token = NULL, reset_password_expire = NULL, updated_at = NOW()
       WHERE id = $2
     `;
     await pool.query(updateQuery, [hashedPassword, user.id]);
+
+    await sendPasswordChangeConfirmationEmail(user.email, user.name);
 
     res.json({
       success: true,
