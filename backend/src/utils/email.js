@@ -265,3 +265,10 @@ const sendWelcomeEmail = async (email, name) => {
     html,
   });
 };
+
+module.exports = {
+  sendEmail,
+  sendPasswordResetEmail,
+  sendPasswordChangeConfirmationEmail,
+  sendWelcomeEmail,
+};
