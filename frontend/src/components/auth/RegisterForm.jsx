@@ -10,22 +10,91 @@ export const RegisterForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'client',
+    role: 'client', // Fixed to client only
     phone: '',
-    specialization: '',
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
 
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  // Password validation function
+  const validatePassword = (password) => {
+    const errors = [];
+    
+    if (password.length < 8) {
+      errors.push('at least 8 characters');
+    }
+    if (!/(?=.*[a-z])/.test(password)) {
+      errors.push('one lowercase letter');
+    }
+    if (!/(?=.*[A-Z])/.test(password)) {
+      errors.push('one uppercase letter');
+    }
+    if (!/(?=.*\d)/.test(password)) {
+      errors.push('one number');
+    }
+    if (!/(?=.*[@$!%*?&])/.test(password)) {
+      errors.push('one special character (@$!%*?&)');
+    }
+    
+    return errors;
+  };
+
+  // Form validation function
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters long';
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else {
+      const passwordErrors = validatePassword(formData.password);
+      if (passwordErrors.length > 0) {
+        newErrors.password = `Password must contain ${passwordErrors.join(', ')}`;
+      }
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    // Phone validation (optional but if provided, must be valid)
+    if (formData.phone && !/^[\+]?[\d\s\-\(\)]{10,}$/.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+
+    return newErrors;
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
-    setError('');
+    setErrors({});
+    setGeneralError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+    // Validate form
+    const formErrors = validateForm();
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
       setLoading(false);
       return;
     }
@@ -35,17 +104,42 @@ export const RegisterForm = () => {
       await register(registerData);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      const errorMessage = err.message || 'Registration failed';
+      
+      // Handle specific error types
+      if (errorMessage.includes('already exists') || errorMessage.includes('duplicate') || errorMessage.includes('email')) {
+        setErrors({ email: 'An account with this email already exists. Try logging in instead.' });
+      } else if (errorMessage.includes('password')) {
+        setErrors({ password: errorMessage });
+      } else if (errorMessage.includes('validation')) {
+        setGeneralError('Please check all fields and try again');
+      } else {
+        setGeneralError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: '',
+      });
+    }
+
+    // Clear general error when user makes changes
+    if (generalError) {
+      setGeneralError('');
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -68,30 +162,19 @@ export const RegisterForm = () => {
           <p className="text-gray-600">{APP_CONFIG.tagline}</p>
         </div>
 
-        {error && (
+        {/* General Error */}
+        {generalError && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-            {error}
+            <div className="flex items-center">
+              <span className="text-red-500 mr-2">⚠️</span>
+              {generalError}
+            </div>
           </div>
         )}
 
         <div className="mt-8 space-y-6">
           <div className="space-y-4">
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                I am a
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50"
-              >
-                <option value="client">🧑‍💼 Client seeking nutrition guidance</option>
-                <option value="dietician">👩‍⚕️ Registered Dietician</option>
-              </select>
-            </div>
-
+            {/* Full Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Full Name
@@ -101,14 +184,20 @@ export const RegisterForm = () => {
                 name="name"
                 type="text"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50"
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50 ${
+                  errors.name ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Enter your full name"
                 value={formData.name}
                 onChange={handleChange}
                 onKeyPress={handleKeyPress}
               />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              )}
             </div>
 
+            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address
@@ -118,72 +207,80 @@ export const RegisterForm = () => {
                 name="email"
                 type="email"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50"
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50 ${
+                  errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
                 onKeyPress={handleKeyPress}
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
 
+            {/* Phone Number */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number (Optional)
+                Phone Number <span className="text-gray-500">(Optional)</span>
               </label>
               <input
                 id="phone"
                 name="phone"
                 type="tel"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50"
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/50 ${
+                  errors.phone ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Enter your phone number"
                 value={formData.phone}
                 onChange={handleChange}
                 onKeyPress={handleKeyPress}
               />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+              )}
             </div>
 
-            {formData.role === 'dietician' && (
-              <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
-                <label htmlFor="specialization" className="block text-sm font-medium text-emerald-800 mb-1">
-                  🎓 Area of Specialization
-                </label>
-                <input
-                  id="specialization"
-                  name="specialization"
-                  type="text"
-                  className="w-full px-4 py-3 border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 bg-white/70"
-                  placeholder="e.g., Sports Nutrition, Clinical Nutrition, Weight Management"
-                  value={formData.specialization}
-                  onChange={handleChange}
-                  onKeyPress={handleKeyPress}
-                />
-              </div>
-            )}
+            {/* Password */}
+            <div>
+              <PasswordInput
+                id="password"
+                name="password"
+                label="Password"
+                placeholder="Create a secure password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                onKeyPress={handleKeyPress}
+                className={errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}
+                helperText="Must contain at least 8 characters with uppercase, lowercase, number, and special character"
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              )}
+            </div>
 
-            <PasswordInput
-              id="password"
-              name="password"
-              label="Password"
-              placeholder="Create a secure password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              onKeyPress={handleKeyPress}
-              helperText="Must include uppercase, lowercase, number, and special character"
-            />
-
-            <PasswordInput
-              id="confirmPassword"
-              name="confirmPassword"
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              required
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              onKeyPress={handleKeyPress}
-            />
+            {/* Confirm Password */}
+            <div>
+              <PasswordInput
+                id="confirmPassword"
+                name="confirmPassword"
+                label="Confirm Password"
+                placeholder="Confirm your password"
+                required
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                onKeyPress={handleKeyPress}
+                className={errors.confirmPassword ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}
+              />
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+              )}
+            </div>
           </div>
 
+          {/* Submit Button */}
           <div>
             <button
               onClick={handleSubmit}
@@ -201,9 +298,10 @@ export const RegisterForm = () => {
             </button>
           </div>
 
+          {/* Login Link */}
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Already part of {APP_CONFIG.name}?{' '}
+              Already have an account?{' '}
               <Link to="/login" className="font-medium text-emerald-600 hover:text-emerald-500">
                 Sign in here
               </Link>

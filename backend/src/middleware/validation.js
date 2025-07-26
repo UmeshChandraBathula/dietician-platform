@@ -20,15 +20,16 @@ const registerValidation = [
   body('email')
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email'),
+    .withMessage('Please provide a valid email address'),
   body('password')
     .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters')
+    .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
-  body('role')
-    .isIn(['client', 'dietician'])
-    .withMessage('Role must be either client or dietician'),
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'),
+  body('phone')
+    .optional()
+    .matches(/^[\+]?[\d\s\-\(\)]{10,}$/)
+    .withMessage('Please enter a valid phone number'),
   handleValidationErrors,
 ];
 
